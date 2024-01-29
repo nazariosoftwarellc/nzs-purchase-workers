@@ -1,4 +1,4 @@
-name = "d1-tutorial"
+name = "check-nzs-purchase"
 main = "src/index.ts"
 compatibility_date = "2024-01-17"
 
