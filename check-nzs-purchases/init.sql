@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS CustomerPurchases;
 CREATE TABLE IF NOT EXISTS CustomerPurchases (
-	  user_email TEXT NOT NULL PRIMARY KEY,
+	  id INTEGER PRIMARY KEY AUTOINCREMENT,
+	  user_email TEXT NOT NULL,
 		app_id TEXT NOT NULL,
 		purchased BOOLEAN NOT NULL,
 		created_at TEXT NOT NULL,
