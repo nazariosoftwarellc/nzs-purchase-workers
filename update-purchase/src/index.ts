@@ -14,16 +14,19 @@ type CustomerPurchase = {
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-		const purchaseEvent: Stripe.PaymentIntentSucceededEvent = await request.json();
-		if (purchaseEvent.type !== 'payment_intent.succeeded') {
+		const purchaseEvent: Stripe.CheckoutSessionCompletedEvent = await request.json();
+		if (purchaseEvent.type !== 'checkout.session.completed') {
 			return new Response('not payment intent succeeded', { status: 200 });
 		}
-		if (!purchaseEvent.data.object.receipt_email) {
-			return new Response('no receipt email', { status: 200 });
+		if (purchaseEvent.data.object.payment_status !== 'paid') {
+			return new Response('payment not paid', { status: 200 });
+		}
+		if (!purchaseEvent.data.object.customer_details?.email) {
+			return new Response('no customer email', { status: 200 });
 		}
 		const purchaseRecord: CustomerPurchase = {
-			user_email: purchaseEvent.data.object.receipt_email,
-			app_id: purchaseEvent.data.object.metadata.app_id,
+			user_email: purchaseEvent.data.object.customer_details.email,
+			app_id: '',
 			purchased: true,
 			created_at: new Date().toISOString(),
 			updated_at: new Date().toISOString(),
