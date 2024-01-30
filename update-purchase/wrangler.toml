@@ -1,0 +1,8 @@
+name = "update-purchase"
+main = "src/index.ts"
+compatibility_date = "2024-01-29"
+
+[[d1_databases]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "customer-purchases"
+database_id = "5391b102-2548-4403-8a3f-f4584940c5e8"
