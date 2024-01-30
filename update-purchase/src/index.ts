@@ -7,7 +7,7 @@ export interface Env {
 type CustomerPurchase = {
 	user_email: string;
 	app_id: string;
-	purchased: boolean;
+	purchased: 0 | 1;
 	created_at: string;
 	updated_at: string;
 };
@@ -15,6 +15,11 @@ type CustomerPurchase = {
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const purchaseEvent: Stripe.CheckoutSessionCompletedEvent = await request.json();
+		console.log('purchaseEvent', JSON.stringify(purchaseEvent));
+		const appId = purchaseEvent.data.object.metadata?.app_id;
+		if (!appId) {
+			return new Response('no app id', { status: 200 });
+		}
 		if (purchaseEvent.type !== 'checkout.session.completed') {
 			return new Response('not payment intent succeeded', { status: 200 });
 		}
@@ -26,8 +31,8 @@ export default {
 		}
 		const purchaseRecord: CustomerPurchase = {
 			user_email: purchaseEvent.data.object.customer_details.email,
-			app_id: '',
-			purchased: true,
+			app_id: appId,
+			purchased: 1,
 			created_at: new Date().toISOString(),
 			updated_at: new Date().toISOString(),
 		};
