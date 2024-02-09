@@ -21,7 +21,7 @@ export default {
 			return new Response('no app id', { status: 200 });
 		}
 		if (purchaseEvent.type !== 'checkout.session.completed') {
-			return new Response('not payment intent succeeded', { status: 200 });
+			return new Response('not checkout session succeeded', { status: 200 });
 		}
 		if (purchaseEvent.data.object.payment_status !== 'paid') {
 			return new Response('payment not paid', { status: 200 });
