@@ -15,9 +15,9 @@ export default {
 		if (!appId) {
 			return new Response('no app id', { status: 400 });
 		}
-		const customerPurchase = await env.DB.prepare(
-			'SELECT * FROM CustomerPurchases WHERE user_email = ? AND app_id = ?'
-		).bind(email, appId).first() as CustomerPurchase | null;
+		const customerPurchase = (await env.DB.prepare('SELECT * FROM CustomerPurchases WHERE user_email = ? AND app_id = ?')
+			.bind(email, appId)
+			.first()) as CustomerPurchase | null;
 		return new Response(JSON.stringify(customerPurchase));
-	},
+	}
 };

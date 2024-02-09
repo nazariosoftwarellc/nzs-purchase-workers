@@ -47,7 +47,7 @@ export default {
 			app_id: appId,
 			purchased: 1,
 			created_at: new Date().toISOString(),
-			updated_at: new Date().toISOString(),
+			updated_at: new Date().toISOString()
 		};
 		await env.DB.prepare('INSERT INTO CustomerPurchases (user_email, app_id, purchased, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
 			.bind(
@@ -61,5 +61,5 @@ export default {
 
 		// Return success
 		return new Response('purchase successful', { status: 200 });
-	},
+	}
 };
