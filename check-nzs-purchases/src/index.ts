@@ -9,6 +9,12 @@ export default {
 		const { searchParams } = new URL(request.url);
 		const email = searchParams.get('email');
 		const appId = searchParams.get('app');
+		if (!email) {
+			return new Response('no email', { status: 400 });
+		}
+		if (!appId) {
+			return new Response('no app id', { status: 400 });
+		}
 		const customerPurchase = await env.DB.prepare(
 			'SELECT * FROM CustomerPurchases WHERE user_email = ? AND app_id = ?'
 		).bind(email, appId).first() as CustomerPurchase | null;
