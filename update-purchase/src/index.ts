@@ -9,6 +9,16 @@ export interface Env {
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+		const path = new URL(request.url).pathname;
+		if (path === '') {
+			return handleStripeWebhook(request, env, ctx);
+		} else {
+			return new Response('not found', { status: 404 });
+		}
+	}
+};
+
+async function handleStripeWebhook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		// Verify event came from Stripe
 		const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 		let event: Stripe.CheckoutSessionCompletedEvent;
@@ -62,4 +72,4 @@ export default {
 		// Return success
 		return new Response('purchase successful', { status: 200 });
 	}
-};
+}
