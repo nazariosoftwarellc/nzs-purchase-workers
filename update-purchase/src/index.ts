@@ -34,18 +34,21 @@ async function handleRevenueCatWebhook(request: Request, env: Env, ctx: Executio
 		return new Response('invalid authorization', { status: 400 });
 	}
 
+	// get bundle id from app id
+	const bundleId = bundleIdForRCAppId(message.event.app_id);
+	if (!bundleId) {
+		return new Response('no matching bundle id for ' + message.event.app_id, { status: 400 });
+	}
+
 	const event = message.event;
 	if (!event.app_user_id) {
 		return new Response('no email', { status: 400 });
-	}
-	if (!event.app_id) {
-		return new Response('no app id', { status: 400 });
 	}
 
 	// Record purchase
 	const purchaseRecord: CustomerPurchase = {
 		user_email: event.app_user_id,
-		app_id: event.app_id,
+		app_id: bundleId,
 		purchased: 1,
 		created_at: new Date().toISOString(),
 		updated_at: new Date().toISOString()
@@ -105,4 +108,11 @@ async function handleStripeWebhook(request: Request, env: Env, ctx: ExecutionCon
 
 	// Return success
 	return new Response('purchase successful', { status: 200 });
+}
+
+function bundleIdForRCAppId(appId: string): string | undefined {
+	const appIds: Record<string, string> = {
+		'app92a7671793': 'com.nazariosoftware.Replies-for-Hacker-News',
+	}
+	return appIds[appId];;
 }
