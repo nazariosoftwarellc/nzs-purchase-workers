@@ -10,7 +10,7 @@ export interface Env {
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const path = new URL(request.url).pathname;
-		if (path === '') {
+		if (path === '/') {
 			return handleStripeWebhook(request, env, ctx);
 		} else {
 			return new Response('not found', { status: 404 });
