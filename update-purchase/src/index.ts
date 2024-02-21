@@ -1,10 +1,12 @@
 import { Stripe } from 'stripe';
 import { CustomerPurchase } from '../../shared/types';
+import { RevenueCatWebhookPurchaseMessage } from './types';
 
 export interface Env {
 	DB: D1Database;
 	STRIPE_SECRET_KEY: string;
 	STRIPE_WEBHOOK_SIGNING_SECRET: string;
+	REVENUECAT_WEBHOOK_SECRET: string;
 }
 
 export default {
@@ -12,11 +14,49 @@ export default {
 		const path = new URL(request.url).pathname;
 		if (path === '/') {
 			return handleStripeWebhook(request, env, ctx);
+		} else if (path === '/revenuecat') {
+			return handleRevenueCatWebhook(request, env, ctx);
 		} else {
 			return new Response('not found', { status: 404 });
 		}
 	}
 };
+
+async function handleRevenueCatWebhook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+	// Verify event came from RevenueCat
+	const message: RevenueCatWebhookPurchaseMessage = await request.json();
+	const authorizationKey = request.headers.get('Authorization');
+
+	// Log event for debugging
+	console.log('message', message);
+
+	if (authorizationKey !== env.REVENUECAT_WEBHOOK_SECRET) {
+		return new Response('invalid authorization', { status: 400 });
+	}
+
+	const event = message.event;
+	if (!event.app_user_id) {
+		return new Response('no email', { status: 400 });
+	}
+	if (!event.app_id) {
+		return new Response('no app id', { status: 400 });
+	}
+
+	// Record purchase
+	const purchaseRecord: CustomerPurchase = {
+		user_email: event.app_user_id,
+		app_id: event.app_id,
+		purchased: 1,
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString()
+	};
+	await env.DB.prepare('INSERT INTO CustomerPurchases (user_email, app_id, purchased, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+		.bind(purchaseRecord.user_email, purchaseRecord.app_id, purchaseRecord.purchased, purchaseRecord.created_at, purchaseRecord.updated_at)
+		.run();
+
+	// Return success
+	return new Response('purchase successful', { status: 200 });
+}
 
 async function handleStripeWebhook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 	// Verify event came from Stripe
