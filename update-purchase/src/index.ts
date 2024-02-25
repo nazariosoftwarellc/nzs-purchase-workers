@@ -1,6 +1,6 @@
 import { Stripe } from 'stripe';
 import { CustomerPurchase } from '../../shared/types';
-import { RevenueCatWebhookPurchaseMessage } from './types';
+import { ApplePurchase } from './types';
 
 export interface Env {
 	DB: D1Database;
@@ -13,55 +13,16 @@ export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const path = new URL(request.url).pathname;
 		if (path === '/') {
-			return handleStripeWebhook(request, env, ctx);
-		} else if (path === '/revenuecat') {
-			return handleRevenueCatWebhook(request, env, ctx);
+			return handleStripeWebhook(request, env);
+		} else if (path === '/apple') {
+			return handleApplePurchase(request, env);
 		} else {
 			return new Response('not found', { status: 404 });
 		}
 	}
 };
 
-async function handleRevenueCatWebhook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-	// Verify event came from RevenueCat
-	const message: RevenueCatWebhookPurchaseMessage = await request.json();
-	const authorizationKey = request.headers.get('Authorization');
-
-	// Log event for debugging
-	console.log('message', message);
-
-	if (authorizationKey !== env.REVENUECAT_WEBHOOK_SECRET) {
-		return new Response('invalid authorization', { status: 400 });
-	}
-
-	// get bundle id from app id
-	const bundleId = bundleIdForRCAppId(message.event.app_id);
-	if (!bundleId) {
-		return new Response('no matching bundle id for ' + message.event.app_id, { status: 400 });
-	}
-
-	const event = message.event;
-	if (!event.app_user_id) {
-		return new Response('no email', { status: 400 });
-	}
-
-	// Record purchase
-	const purchaseRecord: CustomerPurchase = {
-		user_email: event.app_user_id,
-		app_id: bundleId,
-		purchased: 1,
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString()
-	};
-	await env.DB.prepare('INSERT INTO CustomerPurchases (user_email, app_id, purchased, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-		.bind(purchaseRecord.user_email, purchaseRecord.app_id, purchaseRecord.purchased, purchaseRecord.created_at, purchaseRecord.updated_at)
-		.run();
-
-	// Return success
-	return new Response('purchase successful', { status: 200 });
-}
-
-async function handleStripeWebhook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+async function handleStripeWebhook(request: Request, env: Env): Promise<Response> {
 	// Verify event came from Stripe
 	const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 	let event: Stripe.CheckoutSessionCompletedEvent;
@@ -95,8 +56,28 @@ async function handleStripeWebhook(request: Request, env: Env, ctx: ExecutionCon
 	}
 
 	// Record purchase
+	await recordUserPurchase(env, event.data.object.customer_details.email, appId);
+
+	// Return success
+	return new Response('purchase successful', { status: 200 });
+}
+
+async function handleApplePurchase(request: Request, env: Env): Promise<Response> {
+	// verify request body
+	const body: ApplePurchase = await request.json();
+	if (!body.user_email) return new Response('no user email', { status: 400 });
+	if (!body.app_id) return new Response('no app id', { status: 400 });
+
+	// record purchase
+	await recordUserPurchase(env, body.user_email, body.app_id);
+
+	// return success
+	return new Response('recorded purchase', { status: 200 });
+}
+
+async function recordUserPurchase(env: Env, userEmail: string, appId: string): Promise<void> {
 	const purchaseRecord: CustomerPurchase = {
-		user_email: event.data.object.customer_details.email,
+		user_email: userEmail,
 		app_id: appId,
 		purchased: 1,
 		created_at: new Date().toISOString(),
@@ -105,14 +86,4 @@ async function handleStripeWebhook(request: Request, env: Env, ctx: ExecutionCon
 	await env.DB.prepare('INSERT INTO CustomerPurchases (user_email, app_id, purchased, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
 		.bind(purchaseRecord.user_email, purchaseRecord.app_id, purchaseRecord.purchased, purchaseRecord.created_at, purchaseRecord.updated_at)
 		.run();
-
-	// Return success
-	return new Response('purchase successful', { status: 200 });
-}
-
-function bundleIdForRCAppId(appId: string): string | undefined {
-	const appIds: Record<string, string> = {
-		'app92a7671793': 'com.nazariosoftware.Replies-for-Hacker-News',
-	}
-	return appIds[appId];;
 }
