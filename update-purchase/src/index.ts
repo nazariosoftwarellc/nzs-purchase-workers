@@ -6,7 +6,7 @@ export interface Env {
 	DB: D1Database;
 	STRIPE_SECRET_KEY: string;
 	STRIPE_WEBHOOK_SIGNING_SECRET: string;
-	REVENUECAT_WEBHOOK_SECRET: string;
+	APPLE_PURCHASE_SECRET: string;
 }
 
 export default {
@@ -67,6 +67,10 @@ async function handleApplePurchase(request: Request, env: Env): Promise<Response
 	const body: ApplePurchase = await request.json();
 	if (!body.user_email) return new Response('no user email', { status: 400 });
 	if (!body.app_id) return new Response('no app id', { status: 400 });
+
+	// verify request came from my app
+	const signature = request.headers.get('Authorization');
+	if (signature !== env.APPLE_PURCHASE_SECRET) return new Response('invalid auth', { status: 400 });
 
 	// record purchase
 	await recordUserPurchase(env, body.user_email, body.app_id);
