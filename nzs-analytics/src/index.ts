@@ -13,9 +13,6 @@ export default {
       if ((path === '/' || path === '/v1/seen') && request.method === 'POST') {
         return await recordUser(request, env);
       }
-      if (path === '/v1/metrics' && request.method === 'GET') {
-        return await getMetrics(request, env);
-      }
       return new Response('Not found', { status: 404 });
     } catch (error) {
       console.error('Analytics request failed', error);
@@ -52,44 +49,6 @@ async function recordUser(request: Request, env: Env): Promise<Response> {
   ]);
 
   return new Response(null, { status: 204 });
-}
-
-async function getMetrics(request: Request, env: Env): Promise<Response> {
-  const appId = new URL(request.url).searchParams.get('appId');
-  if (!isIdentifier(appId)) {
-    return new Response('Expected appId query parameter', { status: 400 });
-  }
-
-  const now = new Date();
-  const today = now.toISOString().slice(0, 10);
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-    .toISOString();
-  const totals = await env.DB.prepare(
-    `SELECT
-       COUNT(first_seen) AS unique_users,
-       SUM(CASE WHEN premium = 1 AND first_seen IS NOT NULL THEN 1 ELSE 0 END) AS premium_users,
-       SUM(CASE WHEN last_seen >= ? THEN 1 ELSE 0 END) AS active_users_30d
-     FROM app_users
-     WHERE app_id = ?`
-  )
-    .bind(thirtyDaysAgo, appId)
-    .first<{ unique_users: number; premium_users: number; active_users_30d: number }>();
-  const daily = await env.DB.prepare(
-    'SELECT COUNT(*) AS active_users_today FROM app_daily_activity WHERE app_id = ? AND day = ?'
-  )
-    .bind(appId, today)
-    .first<{ active_users_today: number }>();
-
-  return Response.json(
-    {
-      appId,
-      uniqueUsers: totals?.unique_users ?? 0,
-      premiumUsers: totals?.premium_users ?? 0,
-      activeUsers30d: totals?.active_users_30d ?? 0,
-      activeUsersToday: daily?.active_users_today ?? 0
-    },
-    { headers: { 'Cache-Control': 'no-store' } }
-  );
 }
 
 async function readJson(request: Request): Promise<unknown> {

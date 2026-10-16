@@ -16,8 +16,6 @@ A TypeScript Cloudflare Worker and D1 database for tracking extension users by a
 
 All three properties are required. `appId` and `userId` must be nonempty strings of at most 128 characters; `premium` must be a boolean. A valid request returns `204 No Content`. Repeated posts update the existing row rather than creating another user.
 
-`GET /v1/metrics?appId=<appId>` returns `uniqueUsers`, `premiumUsers`, `activeUsers30d`, and `activeUsersToday` for that app. This endpoint is public.
-
 The public POST endpoint accepts client-reported data. The `premium` value is useful for analytics but **is not proof of purchase**. It must not be used to grant access. Public requests can also be spoofed, so the counts are estimates; consider Cloudflare rate limiting.
 
 ## Run locally
@@ -38,6 +36,7 @@ The local Worker runs at `http://localhost:8787` by default. Run `npm run typech
 4. Run `npm run db:migrate:remote`, then `npm run deploy`.
 
 The placeholder database ID is only for local development. Do not deploy before replacing it.
+Inspect counts privately in the Cloudflare D1 dashboard or with `npx wrangler d1 execute nzs-analytics --remote --command "SELECT app_id, COUNT(*) AS users, SUM(premium) AS premium_users FROM app_users GROUP BY app_id"`.
 
 ## Connect an extension
 
