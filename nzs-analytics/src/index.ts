@@ -33,20 +33,16 @@ async function recordUser(request: Request, env: Env): Promise<Response> {
   }
 
   const now = new Date().toISOString();
-  const day = now.slice(0, 10);
-  await env.DB.batch([
-    env.DB.prepare(
-      `INSERT INTO app_users (app_id, user_id, premium, first_seen, last_seen)
-       VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(app_id, user_id) DO UPDATE SET
-         premium = excluded.premium,
-         first_seen = COALESCE(app_users.first_seen, excluded.first_seen),
-         last_seen = MAX(COALESCE(app_users.last_seen, excluded.last_seen), excluded.last_seen)`
-    ).bind(body.appId, body.userId, body.premium ? 1 : 0, now, now),
-    env.DB.prepare(
-      'INSERT OR IGNORE INTO app_daily_activity (app_id, user_id, day) VALUES (?, ?, ?)'
-    ).bind(body.appId, body.userId, day)
-  ]);
+  await env.DB.prepare(
+    `INSERT INTO app_users (app_id, user_id, premium, first_seen, last_seen)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(app_id, user_id) DO UPDATE SET
+       premium = excluded.premium,
+       first_seen = COALESCE(app_users.first_seen, excluded.first_seen),
+       last_seen = MAX(COALESCE(app_users.last_seen, excluded.last_seen), excluded.last_seen)`
+  )
+    .bind(body.appId, body.userId, body.premium ? 1 : 0, now, now)
+    .run();
 
   return new Response(null, { status: 204 });
 }

@@ -1,6 +1,6 @@
 # NZS Analytics Worker
 
-A TypeScript Cloudflare Worker and D1 database for tracking extension users by app. Each POST stores the latest `premium` value for an `(appId, userId)` pair, updates its first and last seen times, and records one activity row per UTC day. It does not store article URLs, browsing history, or email addresses.
+A TypeScript Cloudflare Worker and D1 database for tracking extension users by app. Each POST stores the latest `premium` value for an `(appId, userId)` pair and updates its first and last seen times in `app_users`. It does not store article URLs, browsing history, or email addresses.
 
 ## API
 
@@ -30,10 +30,10 @@ The local Worker runs at `http://localhost:8787` by default. Run `npm run typech
 
 ## Deploy
 
-The Worker is deployed at `https://nzs-analytics.nazariosoftware.workers.dev`. The `nzs-analytics` D1 database is bound in `wrangler.toml`, and the initial migration has been applied remotely. Run `npm run deploy` to publish future changes.
+The Worker is deployed at `https://nzs-analytics.nazariosoftware.workers.dev`. The `nzs-analytics` D1 database is bound in `wrangler.toml`. Run `npm run db:migrate:remote` for new migrations and `npm run deploy` to publish Worker changes.
 
 Inspect counts privately in the Cloudflare D1 dashboard or with `npx wrangler d1 execute nzs-analytics --remote --command "SELECT app_id, COUNT(*) AS users, SUM(premium) AS premium_users FROM app_users GROUP BY app_id"`.
 
 ## Connect an extension
 
-Send one POST from the extension background script after obtaining its synced `userId`, and add the deployed Worker origin to the extension's `host_permissions`. Send the app's bundle ID as `appId` and the current cached purchase flag as `premium`. A daily report is enough for daily active user counts. Before enabling reporting, disclose the persistent ID and usage reporting in the extension's privacy information and store listings.
+Send one POST from the extension background script after obtaining its synced `userId`, and add the deployed Worker origin to the extension's `host_permissions`. Send the app's bundle ID as `appId` and the current cached purchase flag as `premium`. The `last_seen` column can be used to count recently active users. Before enabling reporting, disclose the persistent ID and usage reporting in the extension's privacy information and store listings.
