@@ -30,12 +30,8 @@ The local Worker runs at `http://localhost:8787` by default. Run `npm run typech
 
 ## Deploy
 
-1. Authenticate Wrangler: `npx wrangler login`.
-2. Create a D1 database: `npx wrangler d1 create nzs-analytics`.
-3. Replace the placeholder `database_id` in `wrangler.toml` with the ID returned by Cloudflare.
-4. Run `npm run db:migrate:remote`, then `npm run deploy`.
+The Worker is deployed at `https://nzs-analytics.nazariosoftware.workers.dev`. The `nzs-analytics` D1 database is bound in `wrangler.toml`, and the initial migration has been applied remotely. Run `npm run deploy` to publish future changes.
 
-The placeholder database ID is only for local development. Do not deploy before replacing it.
 Inspect counts privately in the Cloudflare D1 dashboard or with `npx wrangler d1 execute nzs-analytics --remote --command "SELECT app_id, COUNT(*) AS users, SUM(premium) AS premium_users FROM app_users GROUP BY app_id"`.
 
 ## Connect an extension

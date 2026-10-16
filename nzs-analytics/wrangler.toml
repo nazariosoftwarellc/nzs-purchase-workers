@@ -5,4 +5,4 @@ compatibility_date = "2026-10-16"
 [[d1_databases]]
 binding = "DB"
 database_name = "nzs-analytics"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "5446f17e-6c23-4172-a34a-7967b64b03c2"
